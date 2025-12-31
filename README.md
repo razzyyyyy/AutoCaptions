@@ -2,7 +2,7 @@
 
 **Free AI-powered automatic subtitles for DaVinci Resolve**
 
-[![Download](https://img.shields.io/badge/Download-Latest%20Release-22c55e?style=for-the-badge)](https://github.com/YOUR_USERNAME/AutoCaptions/releases/latest)
+[![Download](https://img.shields.io/badge/Download-Latest%20Release-22c55e?style=for-the-badge)](https://github.com/razzyyyyy/AutoCaptions/releases/latest)
 [![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)](LICENSE)
 
 ---
@@ -28,7 +28,7 @@
 
 ### Steps
 
-1. **Download** the [latest release](https://github.com/YOUR_USERNAME/AutoCaptions/releases/latest)
+1. **Download** the [latest release](https://github.com/razzyyyyy/AutoCaptions/releases/latest)
 2. **Extract** the ZIP to any folder (e.g., `Downloads\AutoCaptions`)
 3. **Run** `install.bat` (double-click it)
 4. **Done!** Open DaVinci Resolve
