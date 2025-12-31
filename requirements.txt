@@ -1,0 +1,2 @@
+# AutoCaptions - Required Python packages
+openai-whisper
