@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AutoCaptions - Free AI Subtitles for DaVinci Resolve</title>
+    <meta name="description" content="Add automatic AI-powered subtitles to DaVinci Resolve for free. Uses OpenAI Whisper for accurate transcription.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #0a0a0f;
+            --bg-card: #12121a;
+            --accent: #22c55e;
+            --accent-glow: rgba(34, 197, 94, 0.3);
+            --text: #e4e4e7;
+            --text-dim: #71717a;
+            --border: #27272a;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* Animated background */
+        .bg-grid {
+            position: fixed;
+            inset: 0;
+            background-image: 
+                linear-gradient(rgba(34, 197, 94, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(34, 197, 94, 0.03) 1px, transparent 1px);
+            background-size: 60px 60px;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .glow-orb {
+            position: fixed;
+            width: 600px;
+            height: 600px;
+            border-radius: 50%;
+            background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
+            filter: blur(80px);
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .glow-orb.top { top: -200px; right: -100px; }
+        .glow-orb.bottom { bottom: -200px; left: -100px; opacity: 0.5; }
+
+        /* Header */
+        header {
+            padding: 1.5rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .logo span { color: var(--accent); }
+
+        nav a {
+            color: var(--text-dim);
+            text-decoration: none;
+            margin-left: 2rem;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        nav a:hover { color: var(--accent); }
+
+        /* Hero */
+        .hero {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 6rem 2rem 4rem;
+            text-align: center;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            background: rgba(34, 197, 94, 0.1);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            border-radius: 100px;
+            font-size: 0.85rem;
+            color: var(--accent);
+            margin-bottom: 2rem;
+            font-weight: 500;
+        }
+
+        h1 {
+            font-size: clamp(2.5rem, 6vw, 4.5rem);
+            font-weight: 700;
+            line-height: 1.1;
+            margin-bottom: 1.5rem;
+            letter-spacing: -0.02em;
+        }
+
+        h1 span {
+            background: linear-gradient(135deg, var(--accent) 0%, #4ade80 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero p {
+            font-size: 1.25rem;
+            color: var(--text-dim);
+            max-width: 600px;
+            margin: 0 auto 3rem;
+        }
+
+        .cta-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 1rem 2rem;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.2s;
+            font-family: inherit;
+            cursor: pointer;
+            border: none;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: #000;
+            box-shadow: 0 0 30px var(--accent-glow);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 50px var(--accent-glow);
+        }
+
+        .btn-secondary {
+            background: var(--bg-card);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--accent);
+        }
+
+        /* Demo video/image */
+        .demo {
+            max-width: 900px;
+            margin: 4rem auto;
+            padding: 0 2rem;
+        }
+
+        .demo-window {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 25px 80px -20px rgba(0, 0, 0, 0.5);
+        }
+
+        .demo-bar {
+            padding: 0.75rem 1rem;
+            background: #1a1a24;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .demo-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .demo-dot.red { background: #ff5f57; }
+        .demo-dot.yellow { background: #febc2e; }
+        .demo-dot.green { background: #28c840; }
+
+        .demo-content {
+            padding: 2rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            line-height: 1.8;
+        }
+
+        .demo-line { margin-bottom: 0.5rem; }
+        .demo-line .prompt { color: var(--accent); }
+        .demo-line .cmd { color: var(--text); }
+        .demo-line .output { color: var(--text-dim); }
+        .demo-line .success { color: #4ade80; }
+
+        /* Features */
+        .features {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 4rem 2rem;
+        }
+
+        .features h2 {
+            text-align: center;
+            font-size: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .feature-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 2rem;
+            transition: border-color 0.2s;
+        }
+
+        .feature-card:hover { border-color: var(--accent); }
+
+        .feature-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .feature-card h3 {
+            font-size: 1.25rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .feature-card p {
+            color: var(--text-dim);
+            font-size: 0.95rem;
+        }
+
+        /* Install steps */
+        .install {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 4rem 2rem;
+        }
+
+        .install h2 {
+            text-align: center;
+            font-size: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .step {
+            display: flex;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+            align-items: flex-start;
+        }
+
+        .step-num {
+            width: 48px;
+            height: 48px;
+            background: var(--accent);
+            color: #000;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.25rem;
+            flex-shrink: 0;
+        }
+
+        .step-content h3 {
+            font-size: 1.1rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .step-content p {
+            color: var(--text-dim);
+        }
+
+        .step-content code {
+            display: inline-block;
+            background: #1a1a24;
+            padding: 0.25rem 0.5rem;
+            border-radius: 6px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            margin-top: 0.5rem;
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 3rem 2rem;
+            color: var(--text-dim);
+            border-top: 1px solid var(--border);
+            margin-top: 4rem;
+        }
+
+        footer a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        /* Responsive */
+        @media (max-width: 640px) {
+            header { flex-direction: column; gap: 1rem; }
+            nav a { margin: 0 1rem; }
+            .cta-buttons { flex-direction: column; align-items: center; }
+            .btn { width: 100%; max-width: 300px; justify-content: center; }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-grid"></div>
+    <div class="glow-orb top"></div>
+    <div class="glow-orb bottom"></div>
+
+    <header>
+        <div class="logo">🎬 <span>Auto</span>Captions</div>
+        <nav>
+            <a href="#features">Features</a>
+            <a href="#install">Install</a>
+            <a href="https://github.com/YOUR_USERNAME/AutoCaptions">GitHub</a>
+        </nav>
+    </header>
+
+    <main>
+        <section class="hero">
+            <div class="badge">✨ 100% Free & Open Source</div>
+            <h1>AI Subtitles for<br><span>DaVinci Resolve</span></h1>
+            <p>Automatically transcribe and add subtitles to your videos using OpenAI's Whisper. No subscriptions, no cloud, runs locally on your PC.</p>
+            <div class="cta-buttons">
+                <a href="https://github.com/YOUR_USERNAME/AutoCaptions/releases/latest/download/AutoCaptions.zip" class="btn btn-primary">
+                    ⬇️ Download Free
+                </a>
+                <a href="https://github.com/YOUR_USERNAME/AutoCaptions" class="btn btn-secondary">
+                    View on GitHub
+                </a>
+            </div>
+        </section>
+
+        <section class="demo">
+            <div class="demo-window">
+                <div class="demo-bar">
+                    <div class="demo-dot red"></div>
+                    <div class="demo-dot yellow"></div>
+                    <div class="demo-dot green"></div>
+                </div>
+                <div class="demo-content">
+                    <div class="demo-line"><span class="prompt">$</span> <span class="cmd">Workspace → Scripts → AutoCaptions</span></div>
+                    <div class="demo-line"><span class="output">🎬 AutoCaptions</span></div>
+                    <div class="demo-line"><span class="output">   Project: My Video Project</span></div>
+                    <div class="demo-line"><span class="output">   Timeline: Main Edit</span></div>
+                    <div class="demo-line"><span class="output"></span></div>
+                    <div class="demo-line"><span class="output">[1/3] Exporting audio... ████████░░ 80%</span></div>
+                    <div class="demo-line"><span class="output">[2/3] Transcribing with Whisper AI...</span></div>
+                    <div class="demo-line"><span class="output">[3/3] Adding subtitles...</span></div>
+                    <div class="demo-line"><span class="success">✅ Done! Added 247 subtitles</span></div>
+                </div>
+            </div>
+        </section>
+
+        <section class="features" id="features">
+            <h2>Why AutoCaptions?</h2>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">🧠</div>
+                    <h3>Whisper AI Powered</h3>
+                    <p>Uses OpenAI's state-of-the-art speech recognition. Supports 99+ languages with incredible accuracy.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">💻</div>
+                    <h3>Runs Locally</h3>
+                    <p>Everything runs on your PC. No internet required after setup. Your videos never leave your computer.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🎨</div>
+                    <h3>Custom Styling</h3>
+                    <p>Use your own Text+ templates. Match your brand with custom fonts, colors, and animations.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">⚡</div>
+                    <h3>One-Click Workflow</h3>
+                    <p>Select your settings, click Start. Subtitles appear automatically on your timeline.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🆓</div>
+                    <h3>Completely Free</h3>
+                    <p>No subscriptions, no limits, no watermarks. Open source forever.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🔧</div>
+                    <h3>Easy Setup</h3>
+                    <p>Download, unzip, run install.bat. That's it. Works with DaVinci Resolve Free & Studio.</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="install" id="install">
+            <h2>Installation</h2>
+            
+            <div class="step">
+                <div class="step-num">1</div>
+                <div class="step-content">
+                    <h3>Install Python</h3>
+                    <p>Download Python 3.8+ from python.org. Make sure to check "Add Python to PATH".</p>
+                </div>
+            </div>
+            
+            <div class="step">
+                <div class="step-num">2</div>
+                <div class="step-content">
+                    <h3>Download AutoCaptions</h3>
+                    <p>Download the latest release and extract the ZIP file anywhere on your computer.</p>
+                </div>
+            </div>
+            
+            <div class="step">
+                <div class="step-num">3</div>
+                <div class="step-content">
+                    <h3>Run the Installer</h3>
+                    <p>Double-click <code>install.bat</code> and wait for it to finish.</p>
+                </div>
+            </div>
+            
+            <div class="step">
+                <div class="step-num">4</div>
+                <div class="step-content">
+                    <h3>Use in DaVinci Resolve</h3>
+                    <p>Open your project, go to <code>Workspace → Scripts → AutoCaptions</code></p>
+                </div>
+            </div>
+
+            <div style="text-align: center; margin-top: 3rem;">
+                <a href="https://github.com/YOUR_USERNAME/AutoCaptions/releases/latest/download/AutoCaptions.zip" class="btn btn-primary">
+                    ⬇️ Download AutoCaptions
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>Made with ❤️ for the video editing community</p>
+        <p style="margin-top: 0.5rem;">
+            <a href="https://github.com/YOUR_USERNAME/AutoCaptions">GitHub</a> · 
+            <a href="https://github.com/YOUR_USERNAME/AutoCaptions/issues">Report Bug</a> · 
+            <a href="https://github.com/YOUR_USERNAME/AutoCaptions/blob/main/LICENSE">MIT License</a>
+        </p>
+    </footer>
+</body>
+</html>
+
